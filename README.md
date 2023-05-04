@@ -1,10 +1,10 @@
 ## Deploy ML-Model on flask server
 
-- clone the repo,
-  `cd DeployModel`
+- clone this repo, `git clone https://github.com/aw-santo/Deploy-ML-Model-Flask.git`
+- `cd DeployModel`
 
 - install the dependencies
-  `pip install requirements.txt`
+  `pip install -r requirements.txt`
 
 - run the server
   `python3 app.py`
