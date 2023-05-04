@@ -15,24 +15,20 @@
 
 from flask import Flask, render_template, request
 # from werkzeug import secure_filename
-# from keras.preprocessing.image import ImageDataGenerator
-# import tensorflow as tf
-# import numpy as np
+from keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from tensorflow import keras
+from keras.models import Sequential, model_from_json
 import os
+import collections
 
-# try:
-# 	import shutil
-# 	shutil.rmtree('uploaded / image')
-# 	% cd uploaded % mkdir image % cd ..
-# 	print()
-# except:
-# 	pass
-#
 # model = tf.keras.models.load_model('model')
 app = Flask(__name__)
 
+app.config['UPLOAD_FOLDER'] = 'uploaded'
 
-# app.config['UPLOAD_FOLDER'] = 'uploaded / image'
 
 @app.route('/')
 def upload_f():
@@ -55,13 +51,54 @@ def upload_f():
 # 	print(pred)
 # 	return str(vals[np.argmax(pred)])
 
-# @app.route('/uploader', methods = ['GET', 'POST'])
-# def upload_file():
-# 	if request.method == 'POST':
-# 		f = request.files['file']
-# 		f.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename)))
-# 		val = finds()
-# 		return render_template('pred.html', ss = val)
+@app.route('/uploader', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        file = request.files['file']
+        filename = file.filename
+        if filename==None or not filename.endswith(".csv"):
+            return "Invalid file. Support only '.csv' files."
+        file.save(file.filename)
+    # .csv file saved
+
+    preds =  doProcess(filename)
+    # op = preds.tobytes()
+    print(preds)
+    return preds
+    # return "Test"
+
+def doProcess(filename):
+    df = pd.read_csv(filename)
+    df.drop([0])
+    print(df.head())
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+    # load weights into new model
+    loaded_model.load_weights("weights.hdf5")
+    print("Loaded model from disk")
+    print(df.shape)
+    y_pred1 = tf.argmax(loaded_model.predict(df), axis=-1)
+    y_pred1 = np.array(y_pred1).tolist()
+    print(y_pred1)
+    res = maxOccurences(y_pred1)
+    return info[res]
+
+def maxOccurences(y_preds):
+    counter = collections.Counter(y_preds)
+    max_occurrence = max(counter.values())
+    for number, count in counter.items():
+        if count == max_occurrence:
+            return number
+
+info = {
+        0: "Normal beat",
+        1: " Left bundle branch block beat",
+        2: "Right bundle branch block beat",
+        3: "Atrial Premature Beat",
+        4: "Premature Ventricular Beat"
+        }
 
 if __name__ == '__main__':
     app.run()
